@@ -95,16 +95,18 @@
 
   <script>
     const chat = document.getElementById('chat');
+    let chatHistory = JSON.parse(localStorage.getItem('tps-chat-history')) || [];
 
     function addMessage(content, sender = 'user') {
       const message = document.createElement('div');
       message.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
-      message.innerHTML = `
-        <span class="avatar">${sender === 'user' ? '👤' : '🤖'}</span>
-        <span>${content}</span>
-      `;
+      message.innerHTML = `<span class="avatar">${sender === 'user' ? '👤' : '🤖'}</span><span>${content}</span>`;
       chat.appendChild(message);
       chat.scrollTop = chat.scrollHeight;
+
+      // Salvar no histórico
+      chatHistory.push({ content, sender });
+      localStorage.setItem('tps-chat-history', JSON.stringify(chatHistory));
     }
 
     async function sendMessage() {
@@ -135,56 +137,12 @@
         addMessage('Erro ao conectar com o servidor.', 'bot');
       }
     }
+
+    // Carregar histórico ao abrir a página
+    window.onload = () => {
+      chatHistory.forEach(msg => addMessage(msg.content, msg.sender));
+    };
   </script>
-  <script>
-  const chat = document.getElementById('chat');
-  let chatHistory = JSON.parse(localStorage.getItem('tps-chat-history')) || [];
 
-  function addMessage(content, sender = 'user') {
-    const message = document.createElement('div');
-    message.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
-    message.innerHTML = `<span class="avatar">${sender === 'user' ? '👤' : '🤖'}</span><span>${content}</span>`;
-    chat.appendChild(message);
-    chat.scrollTop = chat.scrollHeight;
-
-    // Salvar no histórico
-    chatHistory.push({ content, sender });
-    localStorage.setItem('tps-chat-history', JSON.stringify(chatHistory));
-  }
-
-  async function sendMessage() {
-    const input = document.getElementById('userInput');
-    const text = input.value.trim();
-    if (text === '') return;
-
-    addMessage(text, 'user');
-    input.value = '';
-
-    const typing = document.createElement('div');
-    typing.classList.add('message', 'bot-message');
-    typing.innerHTML = `<span class="avatar">🤖</span><span class="typing">Digitando...</span>`;
-    chat.appendChild(typing);
-    chat.scrollTop = chat.scrollHeight;
-
-    try {
-      const res = await fetch('/api/gpt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text })
-      });
-      const data = await res.json();
-      typing.remove();
-      addMessage(data.reply || 'Erro ao obter resposta.', 'bot');
-    } catch (err) {
-      typing.remove();
-      addMessage('Erro ao conectar com o servidor.', 'bot');
-    }
-  }
-
-  // Carregar histórico ao abrir a página
-  window.onload = () => {
-    chatHistory.forEach(msg => addMessage(msg.content, msg.sender));
-  };
-</script>
 </body>
 </html>
