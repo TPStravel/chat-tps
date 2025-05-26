@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Chat TPS</title>
   <link rel="icon" href="data:,">
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js"></script>
+
   <style>
     body {
       margin: 0;
@@ -93,7 +98,17 @@
     <button onclick="sendMessage()">Enviar</button>
   </div>
 
+  <!-- Firebase Configuração e Chat Script -->
   <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDReBGhb2gZNv7KA86HJXTeiLimWTrurp8",
+      authDomain: "canal-vivo-chat.firebaseapp.com",
+      projectId: "canal-vivo-chat"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
     const chat = document.getElementById('chat');
     let chatHistory = JSON.parse(localStorage.getItem('tps-chat-history')) || [];
 
@@ -102,11 +117,19 @@
       message.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
       message.innerHTML = `<span class="avatar">${sender === 'user' ? '👤' : '🤖'}</span><span>${content}</span>`;
       chat.appendChild(message);
-      chat.scrollTop = chat.scrollHeight;
 
-      // Salvar no histórico
+      // Salvar localmente
       chatHistory.push({ content, sender });
       localStorage.setItem('tps-chat-history', JSON.stringify(chatHistory));
+
+      // Salvar no Firestore
+      db.collection('mensagens_tps').add({
+        mensagem: content,
+        remetente: sender,
+        timestamp: new Date()
+      });
+
+      chat.scrollTop = chat.scrollHeight;
     }
 
     async function sendMessage() {
@@ -138,12 +161,10 @@
       }
     }
 
-    // Carregar histórico ao abrir a página
     window.onload = () => {
       chatHistory.forEach(msg => addMessage(msg.content, msg.sender));
     };
 
-    // Enviar com tecla Enter
     document.getElementById('userInput').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') {
         e.preventDefault();
